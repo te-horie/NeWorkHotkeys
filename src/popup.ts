@@ -17,7 +17,7 @@ function save_options() {
   const settings = {
       soundEnabled: form.soundEnabled.checked,
   };
-  chrome.storage.local.set({ [NeWorkHotkeys.KEY_SETTINGS]: settings }, () => info('Options saved.'));
+  chrome.storage.local.set({ [NeWorkHotkeys.KEY_SETTINGS]: settings });
 }
 
 function restore_options() {

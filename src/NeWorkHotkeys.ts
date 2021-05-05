@@ -2,6 +2,7 @@ import 'chrome-extension-async';
 
 export class NeWorkHotkeys {
     static readonly KEY_SETTINGS = "settings";
+    private readonly observer: MutationObserver = new MutationObserver(this.playSound.bind(this));
     // @ts-ignore
     private cache: Promise<StorageCache>;
     private audios: { [key: string]: HTMLAudioElement }
@@ -11,7 +12,6 @@ export class NeWorkHotkeys {
             "work": new Audio(chrome.extension.getURL("work.mp3")),
         };
     }
-    enableZone(): void { (document.querySelector('li.zone > button') as HTMLElement).click() }
     async enableWork(): Promise<void> {
         (document.querySelector('li.work > button') as HTMLElement).click();
         this.play("work");
@@ -21,12 +21,31 @@ export class NeWorkHotkeys {
         // wait until sound end
         setTimeout(() => { (document.querySelector('li.open > button') as HTMLElement).click() }, 300);
     }
-    toggleBubble(): void { (document.querySelector('button.bubbleInOut') as HTMLElement).click() }
+    playSound(records: MutationRecord[]) {
+        const btn = (records[0].target as Element);
+        if (btn.hasAttribute('disabled') === false) {
+            const status = (btn.getAttribute('aria-pressed') === 'true');
+            if (status !== null) {  // unknown status
+                if (status === true) {  // `aria-pressed: true` is mute
+                    this.play('work');
+                }
+                else {  // mic is unmute
+                    this.play('open');
+                }
+            }
+            else {
+                console.warn(`button status is unknown. 'aria-pressed' status is: ${btn.getAttribute('aria-pressed')}`);
+            }
+            this.observer.disconnect();
+        }
+    }
     toggleTalk(): void {
-        if ((document.querySelector("div.statusNow img") as HTMLImageElement).src.match(/open/)) {
-            this.enableWork()
-        } else {
-            this.enableOpen()
+        const micButton = (document.querySelector('div.go4273220301 button.go1674640006') as HTMLElement);
+        if (micButton !== null) {
+            this.observer.takeRecords();  // clear the queue
+            this.observer.disconnect();
+            this.observer.observe(micButton, { attributes: true, attributeFilter: ['disabled'] });
+            micButton.click();
         }
     }
     private async getCache(): Promise<StorageCache> {

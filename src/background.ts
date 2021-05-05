@@ -1,4 +1,4 @@
-const newWorkUrlPattern = "https://nework.app/workspaces/*";
+const newWorkUrlPattern = "https://nework.app/workspace/*";
 
 function waitPageLoad(command: string) {
     chrome.tabs.query({ url: newWorkUrlPattern }, function (tabs: any) {
