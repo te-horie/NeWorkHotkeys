@@ -30,8 +30,8 @@
     "persistent": true
   },
   "commands": {
-    "toggle_talk": {
-      "description": "(experimental) taggle work/open"
+    "toggle_mic": {
+      "description": "toggle your microphone"
     }
   },
   "permissions": [

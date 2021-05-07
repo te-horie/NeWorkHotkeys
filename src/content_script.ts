@@ -1,7 +1,7 @@
 import { NeWorkHotkeys } from './NeWorkHotkeys';
 const hotkeys = new NeWorkHotkeys();
 const commands = {
-    "toggle_talk": () => hotkeys.toggleTalk(),
+    "toggle_mic": () => hotkeys.toggleMic(),
 };
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     commands[request.command]();

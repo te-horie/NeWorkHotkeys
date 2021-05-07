@@ -2,50 +2,64 @@ import 'chrome-extension-async';
 
 export class NeWorkHotkeys {
     static readonly KEY_SETTINGS = "settings";
-    private readonly observer: MutationObserver = new MutationObserver(this.playSound.bind(this));
     // @ts-ignore
     private cache: Promise<StorageCache>;
     private audios: { [key: string]: HTMLAudioElement }
+    private readonly observer: MutationObserver;
     constructor() {
         this.audios = {
-            "open": new Audio(chrome.extension.getURL("open.mp3")),
-            "work": new Audio(chrome.extension.getURL("work.mp3")),
+            unmute: new Audio(chrome.extension.getURL("open.mp3")),
+            mute: new Audio(chrome.extension.getURL("work.mp3")),
         };
+        this.observer = new MutationObserver(this.playSound.bind(this));
     }
-    async enableWork(): Promise<void> {
-        (document.querySelector('li.work > button') as HTMLElement).click();
-        this.play("work");
-    }
-    async enableOpen(): Promise<void> {
-        this.play("open");
-        // wait until sound end
-        setTimeout(() => { (document.querySelector('li.open > button') as HTMLElement).click() }, 300);
-    }
-    playSound(records: MutationRecord[]) {
-        const btn = (records[0].target as Element);
+    private playSound(records: MutationRecord[]) {
+        const btn = (records[0].target as HTMLElement);
         if (btn.hasAttribute('disabled') === false) {
-            const status = (btn.getAttribute('aria-pressed') === 'true');
-            if (status !== null) {  // unknown status
-                if (status === true) {  // `aria-pressed: true` is mute
-                    this.play('work');
+            const status = btn.getAttribute('aria-pressed');
+            if (status !== null) {
+                if (status === 'true') {  // `aria-pressed: true` means mute.
+                    this.play('mute');
                 }
                 else {  // mic is unmute
-                    this.play('open');
+                    this.play('unmute');
                 }
             }
             else {
-                console.warn(`button status is unknown. 'aria-pressed' status is: ${btn.getAttribute('aria-pressed')}`);
+                console.warn(`button status is unknown. 'aria-pressed': ${btn.getAttribute('aria-pressed')}`);
             }
             this.observer.disconnect();
         }
     }
-    toggleTalk(): void {
-        const micButton = (document.querySelector('div.go4273220301 button.go1674640006') as HTMLElement);
+    private getMicToggleButton(): HTMLElement | null {
+        const micButton = (document.querySelector('div.go2292276745 > button.go1674640006:nth-child(1)') as HTMLElement);
+        if (micButton === null) {
+            return null;
+        }
+
+        const title = micButton.getAttribute('title');
+        if (title === 'マイクをオンにする' || title === 'マイクをミュートにする') {
+            return micButton;
+        }
+        else {
+            return null;
+        }
+    }
+    public async toggleMic(): Promise<void> {
+        const micButton = this.getMicToggleButton();
         if (micButton !== null) {
-            this.observer.takeRecords();  // clear the queue
-            this.observer.disconnect();
-            this.observer.observe(micButton, { attributes: true, attributeFilter: ['disabled'] });
-            micButton.click();
+            if (!micButton.hasAttribute('disabled')) {
+                if (await this.isSoundEnabled()) {
+                    this.observer.takeRecords();  // clear the queue
+                    this.observer.disconnect();
+                    this.observer.observe(micButton, { attributes: true, attributeFilter: ['disabled'] });
+                }
+                micButton.click();
+            }
+        }
+        else {
+            // mic button not found.
+            // [TODO] Play a beep.
         }
     }
     private async getCache(): Promise<StorageCache> {
@@ -57,15 +71,11 @@ export class NeWorkHotkeys {
         }
         return cache;
     }
-    async isSoundEnabled(): Promise<boolean> {
+    private async isSoundEnabled(): Promise<boolean> {
         const cache = await this.getCache();
         return cache.settings.soundEnabled;
     }
-    async play(cls: string): Promise<void> {
-        const isSoundEnabled = await this.isSoundEnabled()
-        if (!isSoundEnabled) {
-            return;
-        }
+    private async play(cls: string): Promise<void> {
         const audio = this.audios[cls];
         if (audio.paused) {
             audio.play();
